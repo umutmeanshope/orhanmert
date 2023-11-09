@@ -1,13 +1,19 @@
+import os.path
 from datetime import date
 import pandas as pd
 import pdfplumber
 
 import config
 from delivery_note import DeliveryNote
-from tkinter import filedialog
+import flet as ft
+from logger import log
 
-def update_dump_folder(e):
-    config.update_dump_folder(filedialog.askdirectory(title="Select dump folder"))
+
+def on_result_path(e: ft.FilePickerResultEvent):
+    config.update_dump_folder(e.path)
+
+
+folder_picker = ft.FilePicker(on_result=on_result_path)
 
 
 def extract(pdf_file: str, page_number: str = "all") -> str | None:
@@ -36,14 +42,43 @@ def extract(pdf_file: str, page_number: str = "all") -> str | None:
                 text = page.extract_text()
                 return text
     except Exception as e:
-        print(f"Error extracting pdf file {pdf_file} Error: {e}")
+        log.error(f"Error extracting file {pdf_file} Error: {e}")
 
 
-def create_excel(df: pd.DataFrame, dump_folder: str, dn: DeliveryNote) -> None:
+def create_excel(dn: DeliveryNote, dump_folder: str) -> None:
+    try:
 
-    df.to_excel(
-        f"{dump_folder}{dn.order_number}_{dn.doc_number}_{date.strftime(dn.date, '%d.%m.%Y')}.xlsx",
-        index=False)
+        dn.lot_data_df.to_excel(
+            f"{dump_folder}\\{dn.order_number}_{dn.doc_number}_{dn.date}.xlsx",
+            index=False, engine="openpyxl")
+    except Exception as err:
+        log.error(f"Error creating excel file: {err}")
+
+def process_delivery_note(text: str):
+
+    delivery_note = DeliveryNote(text)
+    log.info(f"{delivery_note.doc_number} - Started")
+    dump_folder = config.get_dump_folder()
+
+    if not config.dump_folder_set() or not os.path.exists(dump_folder):
+        folder_picker.get_directory_path()
+
+    create_excel(dn=delivery_note,
+                 dump_folder=dump_folder)
+    log.info(f"{delivery_note.doc_number} - Done")
+
+
+def start_process(e: ft.FilePickerResultEvent):
+
+    files = e.files
+
+    for file in files:
+        path = file.path
+        text = extract(path)
+        process_delivery_note(text)
+
+
+file_picker = ft.FilePicker(on_result=start_process)
 
 
 
