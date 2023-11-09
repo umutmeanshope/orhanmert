@@ -1,10 +1,14 @@
 import logging
 import traceback
 
+"""
+Simple logger to log exceptions errors and events to keep track of things
 
-def trace():
+Logging function can be partially implemented inside the UI to give the user a feedback
 
-    return traceback.format_exc()
+Logger also prints the logs on the terminal for the developer.
+
+"""
 
 
 logging.basicConfig(filename="logs.log",

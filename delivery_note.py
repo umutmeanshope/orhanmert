@@ -1,12 +1,26 @@
 import re
-from datetime import date
 import pandas as pd
 from collections import namedtuple
 from logger import log
 
 
-
 class DeliveryNote:
+    """
+
+    This class is specifically designed to read only one type of delivery note pdf.
+    The class is using regular expressions to loop through and recognize the info in the extracted text.
+
+    Info the class looks for is:
+
+    Document number, document date, order number and the list of items delivered.
+
+    List of items delivered also has different info associated with it:
+
+    Item number, name, lot number, remaining shelf life days, best before date and quantity.
+
+    Item data processor can also be further separated into a child class of the DeliveryNote.
+
+    """
 
     def __init__(self, text: str):
         """
@@ -17,9 +31,8 @@ class DeliveryNote:
         self.doc_number = None
         self.date = None
         self.order_number = None
-        self.lot_data_df = self.__process_lot_data()
-
-        self.__assign()
+        self.__assign()  # Call the assign method to populate the attributes with the document info
+        self.lot_data_df = self.__process_item_data()
 
     def __assign(self) -> None:
         """
@@ -27,7 +40,13 @@ class DeliveryNote:
 
 
         In the instance of no pattern match: None is assigned to the attributes and
-        there may be something wrong with the delivery note pdf
+        there may be something wrong with the delivery note pdf.
+
+        If there is something wrong with the delivery note. It is good to notice the user of it.
+        The delivery notes sent by our supplier is quite cluttered and
+        a small piece of info missing likely get unnoticed by humans.
+        This way the warehouse team can act faster and reject the delivery note or investigate the missing info.
+
         :returns: None
         """
 
@@ -36,7 +55,18 @@ class DeliveryNote:
 
         try:
 
+            """
+            
+            This loop lasts a really short time because all the identifying info of the document is at the top.
+            
+            When all the info is found the we break out of the loop to save time
+            and prevent reassigning the same values over and over.
+            
+            """
+
             for line in self.__text:
+
+                # Skip when the doc number and date are found
 
                 if self.doc_number is None and self.date is None:
                     name_date = name_date_re.match(line)
@@ -44,27 +74,55 @@ class DeliveryNote:
                         self.doc_number = name_date.group(4)
                         self.date = name_date.group(6)
 
+                # Skip when the order number is found
+
                 elif self.order_number is None:
                     order_line = order_line_re.match(line)
                     if order_line:
                         self.order_number = order_line.group(7)
 
+                # Break when all the document info is found, save time
+
                 if self.doc_number and self.date and self.order_number:
                     break
+
         except Exception as err:
-            log.error(f"Error recognizing document date, order number, or document id, check the pdf")
+            log.error(f"Error recognizing document date, order number or document id, check the pdf")
 
-    def __process_lot_data(self) -> pd.DataFrame:
+    def __process_item_data(self) -> pd.DataFrame:
         """
-        Extracts the item data from the delivery note pdf
+        Extracts the item data from the delivery note pdf.
 
-        If there's an error during the extracting process there may be a problem with the pdf
+        If there's an error during the extracting process there may be a problem with the pdf.
 
-        :return:
+        The item info in the pdf consists of two lines of data for the same item.
+        First line has the info such as item number, name, quantity.
+        Second line has lot number, shelf life and best before date.
+        This complicates the extraction process since the text is split into lines when the class is first created.
+        The item info essentially gets cut in half.
+
+        To combat this, the method first recognizes the two item and lot lines and puts them in a list
+        alternating between an item line and lot line. Since they are successive in the pdf,
+        they are positioned in the list one after the other.
+
+        Next, with the regular expressions, when the method recognizes an "item line" in the new list,
+        the line after that is the "lot line" associated with the last "item line".
+
+        Meaning: "index + 1"
+
+        When the cleaning is done, the method starts to extract the item data from the list and puts them in a
+        pandas DataFrame.
+
+        Note: The identifier info of the document is on the first and
+        the item and lot data start at the second page, in the future, splitting the pages
+        and feeding them separately to the methods could be faster and more efficient
+
+
+        :return: Dataframe with the item data
         """
 
-        lot_line_re = re.compile(r"(\d{8}) (Restlaufzeit\(Tage\)) (\d+) (Charge) (.*)\s?(MHD) (\d{2}\.\d{2}\.\d{4})")
         item_line_re = re.compile(r"(\d{6}) (\d{4}) (\d{13}) (.*) (\d+) (.*)")
+        lot_line_re = re.compile(r"(\d{8}) (Restlaufzeit\(Tage\)) (\d+) (Charge) (.*)\s?(MHD) (\d{2}\.\d{2}\.\d{4})")
 
         lot_data = namedtuple("LotData", ["item_number",
                                           "item_name",
@@ -72,6 +130,8 @@ class DeliveryNote:
                                           "bbd",
                                           "quantity",
                                           "shelf_life"])
+
+        # alternate item and lot lines, put them in a list
 
         lines = []
         for line in self.__text:  # alternate item and lot lines, put them in a list
@@ -84,14 +144,16 @@ class DeliveryNote:
 
         line_items = []
 
-        for line in lines:  # classify individual entities in item and lot lines list using regex
+        # classify individual entities in item and lot lines list using regex
+
+        for line in lines:
             try:
                 if item_line_re.match(line):
                     index = lines.index(line)
                     item_line = item_line_re.match(line)
-                    lot_line = lot_line_re.match(lines[index + 1])  # take the index of the item line, the next line
-                    item_number = item_line.group(2)  # will be the lot number line of the item
-                    lot_number = lot_line.group(5)
+                    lot_line = lot_line_re.match(lines[index + 1])  # Take the index of the previous item line
+                    item_number = item_line.group(2)  # the next line will be the "lot line" associated
+                    lot_number = lot_line.group(5)  # with the item
                     bbd = lot_line.group(7)
                     quantity = item_line.group(5)
                     shelf_life = lot_line.group(3)
@@ -106,18 +168,21 @@ class DeliveryNote:
                 log.error(f"Error extracting lot data {self.doc_number}, Error: {e}")
                 log.error(f"Last data extracted {line_items[len(line_items) - 1]}")
 
-        df = pd.DataFrame(line_items)  # create a tabular dataframe from the entities
+        # create a pandas dataframe from the entities
 
-        df["item_number"] = pd.to_numeric(df["item_number"])  # convert and clean datatypes
+        df = pd.DataFrame(line_items)
+
+        # convert and clean datatypes
+
+        df["item_number"] = pd.to_numeric(df["item_number"])
         df["bbd"] = pd.to_datetime(df["bbd"], dayfirst=True)
         df["bbd"] = df["bbd"].dt.strftime("%d.%m.%Y")
         df["quantity"] = pd.to_numeric(df["quantity"])
         df["shelf_life"] = pd.to_numeric(df["shelf_life"])
 
+        # Merge the items that has the same lot number and sum their quantity
+
         final_df = df.groupby(['item_number', 'item_name', 'lot_number', 'bbd', 'shelf_life'],
                               as_index=False)['quantity'].sum()
 
         return final_df
-
-
-
