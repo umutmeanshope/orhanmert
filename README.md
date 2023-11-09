@@ -19,7 +19,8 @@ More updates and improvements will be made in the future.
 
 Feel free to suggest or make improvements on the code. I am still learning.
 
-Contact me at: u.meanshope@gmail.com\
+Contact me at:\
+u.meanshope@gmail.com\
 [umutmeanshope.com](https://www.umutmeanshope.com/)
 
 Copyright(C) 2023 Umut Aydınoğlu\
