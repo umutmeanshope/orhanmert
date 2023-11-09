@@ -1,17 +1,26 @@
 import flet as ft
-import config
-from tkinter import filedialog
 import process as pr
 
-process_button = ft.ElevatedButton(text="Start Process",
-                                   width=200,
-                                   height=50)
 
+file_picker = pr.file_picker
+folder_picker = pr.folder_picker
 
-dump_folder_button = ft.ElevatedButton(text="Output Folder",
-                                       width=150,
-                                       height=45,
-                                       on_click=pr.update_dump_folder)
+process_button = ft.ElevatedButton(
+    text="Start Process",
+    width=200,
+    height=50,
+    on_click=lambda _: file_picker.pick_files(
+        dialog_title="Select files to process",
+        allow_multiple=True
+        )
+)
+
+dump_folder_button = ft.ElevatedButton(
+    text="Output Folder",
+    width=150,
+    height=45,
+    on_click=lambda _: folder_picker.get_directory_path(dialog_title="Select an output folder")
+)
 
 
 button_column = ft.Column(

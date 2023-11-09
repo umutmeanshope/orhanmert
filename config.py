@@ -23,5 +23,12 @@ def get_dump_folder() -> str:
     return config["dump_folder"]
 
 
+def dump_folder_set():
+    if get_dump_folder() is None:
+        return False
+    else:
+        return True
+
+
 
 

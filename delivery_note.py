@@ -2,21 +2,11 @@ import re
 from datetime import date
 import pandas as pd
 from collections import namedtuple
-
+from logger import log
 
 
 
 class DeliveryNote:
-
-
-
-
-    lot_data = namedtuple("LotData", ["item_number",
-                                      "item_name",
-                                      "lot_number",
-                                      "bbd",
-                                      "quantity",
-                                      "shelf_life"])
 
     def __init__(self, text: str):
         """
@@ -27,6 +17,7 @@ class DeliveryNote:
         self.doc_number = None
         self.date = None
         self.order_number = None
+        self.lot_data_df = self.__process_lot_data()
 
         self.__assign()
 
@@ -43,23 +34,27 @@ class DeliveryNote:
         order_line_re = re.compile(r"(\d{4}) (\d{8}) (\d{13}) (.*) (\d+(\.\d*)?) .* ([A-Z]{3}\d{5})")
         name_date_re = re.compile(r"(Nummer) (/) (Datum:)(\d{8}) (/)(\d{2}\.\d{2}\.\d{4})")
 
-        for line in self.__text:
+        try:
 
-            if self.doc_number is None and self.date is None:
-                name_date = name_date_re.match(line)
-                if name_date:
-                    self.doc_number = name_date.group(4)
-                    self.date = name_date.group(5)
+            for line in self.__text:
 
-            elif self.order_number is None:
-                order_line = order_line_re.match(line)
-                if order_line:
-                    self.order_number = order_line.group(7)
+                if self.doc_number is None and self.date is None:
+                    name_date = name_date_re.match(line)
+                    if name_date:
+                        self.doc_number = name_date.group(4)
+                        self.date = name_date.group(6)
 
-            if self.doc_number and self.date and self.order_number:
-                break
+                elif self.order_number is None:
+                    order_line = order_line_re.match(line)
+                    if order_line:
+                        self.order_number = order_line.group(7)
 
-    def process_lot_data(self) -> pd.DataFrame:
+                if self.doc_number and self.date and self.order_number:
+                    break
+        except Exception as err:
+            log.error(f"Error recognizing document date, order number, or document id, check the pdf")
+
+    def __process_lot_data(self) -> pd.DataFrame:
         """
         Extracts the item data from the delivery note pdf
 
@@ -108,8 +103,8 @@ class DeliveryNote:
                                                quantity,
                                                shelf_life))  # named tuple
             except Exception as e:
-                print(f"Error extracting lot data {self.doc_number}, Error: {e}")
-                print(f"Last data extracted {line_items[len(line_items) - 1]}")
+                log.error(f"Error extracting lot data {self.doc_number}, Error: {e}")
+                log.error(f"Last data extracted {line_items[len(line_items) - 1]}")
 
         df = pd.DataFrame(line_items)  # create a tabular dataframe from the entities
 
