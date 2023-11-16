@@ -1,6 +1,8 @@
 import flet as ft
 import process as pr
 
+dialog = pr.dialog
+
 """
 
 Since this was a quick project that my coworker needed it fast 

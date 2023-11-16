@@ -4,6 +4,9 @@ import config
 from delivery_note import DeliveryNote
 import flet as ft
 from logger import log
+import dialog as dlg
+
+dialog = dlg.Dialog()
 
 
 def on_result_path(e: ft.FilePickerResultEvent) -> None:
@@ -117,6 +120,8 @@ def start_process(e: ft.FilePickerResultEvent) -> None:
         text = extract(path)
         process_delivery_note(text)
 
+    dialog.open_dialog()
+
 
 """
 Create the file picker and point to the main process function
@@ -128,3 +133,5 @@ I separated them into file picker and folder picker to be organised and neat
 """
 
 file_picker = ft.FilePicker(on_result=start_process)
+
+

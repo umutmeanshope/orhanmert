@@ -11,6 +11,10 @@ def main(page: ft.Page):
     :return: None
     """
 
+    dialog = fletapp.dialog
+    # pass the Page object to the dialog object
+    dialog.get_page(page)
+
     page.title = "Orhan Mert"
     page.window_width = 600
     page.window_height = 400
