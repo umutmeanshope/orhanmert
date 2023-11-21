@@ -23,7 +23,6 @@ def main(page: ft.Page):
     page.overlay.append(fletapp.file_picker)
     page.update()
 
-
     page.add(
         ft.Row(
             [

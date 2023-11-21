@@ -1,0 +1,12 @@
+2023-11-21 18:25:00,473 - INFO - Assets path configured: C:\Users\UMUT AYDINOGLU\PycharmProjects\orhanmert\assets
+2023-11-21 18:25:00,492 - INFO - Starting up TCP server on ('localhost', 59518)
+2023-11-21 18:25:00,500 - INFO - App URL: tcp://localhost:59518
+2023-11-21 18:25:00,501 - INFO - Connected to Flet app and handling user sessions...
+2023-11-21 18:25:00,501 - INFO - Starting Flet View app...
+2023-11-21 18:25:00,502 - INFO - Flet View found in: C:\Users\UMUT AYDINOGLU\PycharmProjects\orhanmert\venv\Lib\site-packages\flet\bin\flet\flet.exe
+2023-11-21 18:25:00,781 - INFO - Session started: 
+2023-11-21 18:25:07,834 - INFO - Took 0.015535599959548563 seconds to process
+2023-11-21 18:25:08,324 - INFO - 86680267 - Done
+- Session started: 
+2023-11-21 18:25:07,834 - INFO - Took 0.015535599959548563 seconds to process
+2023-11-21 18:25:08,324 - INFO - 86680267 - Done

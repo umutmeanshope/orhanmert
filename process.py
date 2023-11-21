@@ -86,7 +86,6 @@ def process_delivery_note(text: str) -> None:
     :return: None
     """
     delivery_note = DeliveryNote(text)
-    log.info(f"{delivery_note.doc_number} - Started")
     dump_folder = config.get_dump_folder()  # get the output location saved in the config.json
 
     """
